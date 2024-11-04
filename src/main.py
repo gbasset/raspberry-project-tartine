@@ -1,7 +1,6 @@
 import sounddevice as sd
 import numpy as np
 import wave
-import keyboard
 import speech_recognition as sr
 import datetime
 
@@ -9,13 +8,18 @@ import datetime
 RATE = 44100  # Taux d'échantillonnage
 CHANNELS = 1  # Mono
 PHRASE_TO_DETECT = "ok tartine"
+STOP_PHRASE = "arrête"  # Phrase pour arrêter l'enregistrement
+
+recording = False  # État de l'enregistrement
 
 
 def start_recording():
-    """Enregistre l'audio et arett e avec Espace."""
-    print("Enregistrement en cours... Appuyez sur 'Espace' pour arrêter.")
+    """Enregistre l'audio et s'arrête avec une commande vocale."""
+    global recording
+    recording = True
+    print("Enregistrement en cours... Dites 'arrête' pour stopper.")
 
-    # Generate a unique filename based on the current timestamp
+    # Générer un nom de fichier unique basé sur le timestamp actuel
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     OUTPUT_FILE = f"enregistrement_{timestamp}.wav"
 
@@ -23,13 +27,37 @@ def start_recording():
 
     # Fonction de callback pour capturer les frames audio
     def callback(indata, frames, time, status):
+        if status:
+            print(status)  # Afficher les erreurs si nécessaire
         audio_frames.append(indata.copy())
 
     # Démarrer l'enregistrement avec un InputStream
     with sd.InputStream(samplerate=RATE, channels=CHANNELS, callback=callback, dtype='int16'):
-        # Attendre que l'utilisateur appuie sur 'Espace' pour arrêter l'enregistrement
-        keyboard.wait('space')
-        print("Enregistrement terminé.")
+        recognizer = sr.Recognizer()
+
+        # Boucle pour écouter la phrase d'arrêt tout en enregistrant
+        while recording:
+            try:
+                with sr.Microphone() as source:  # Utiliser le microphone par défaut
+                    # Ajuster le bruit ambiant et écouter
+                    recognizer.adjust_for_ambient_noise(source)
+                    print("Écoute de la commande pour arrêter...")
+                    audio = recognizer.listen(source)
+
+                # Reconnaître la phrase d'arrêt
+                text = recognizer.recognize_google(audio, language='fr-FR')
+                print(f"Commande entendue : {text}")
+
+                if STOP_PHRASE.lower() in text.lower():
+                    print("Commande d'arrêt détectée.")
+                    recording = False  # Sortir de la boucle d'enregistrement
+
+            except sr.UnknownValueError:
+                print("Aucune commande reconnue, continuez à parler...")
+            except sr.RequestError:
+                print("Erreur avec le service de reconnaissance vocale.")
+            except Exception as e:
+                print(f"Erreur inattendue : {e}")
 
     # Convertir les frames en un tableau numpy
     audio_data = np.concatenate(audio_frames, axis=0)
@@ -54,17 +82,16 @@ def start_recording():
 
 def listen_for_phrase():
     recognizer = sr.Recognizer()
-    mic = sr.Microphone()
 
     print(f"En attente de la phrase '{PHRASE_TO_DETECT}' pour démarrer l'enregistrement...")
 
     while True:
-        with mic as source:
-            # Ajuster le bruit ambiant et écouter
-            recognizer.adjust_for_ambient_noise(source)
-            audio = recognizer.listen(source)
-
         try:
+            with sr.Microphone() as source:  # Utiliser le microphone par défaut
+                # Ajuster le bruit ambiant et écouter
+                recognizer.adjust_for_ambient_noise(source)
+                audio = recognizer.listen(source)
+
             # Reconnaître la phrase
             text = recognizer.recognize_google(audio, language="fr-FR")
             print(f"Phrase entendue : {text}")
@@ -79,7 +106,9 @@ def listen_for_phrase():
             print("Aucune phrase reconnue, réessayez...")
         except sr.RequestError:
             print("Erreur avec le service de reconnaissance vocale.")
+        except Exception as e:
+            print(f"Erreur inattendue : {e}")
 
 
-# Démarrer l'écoute de la phrase
-listen_for_phrase()
+if __name__ == "__main__":
+    listen_for_phrase()  # Démarrer l'écoute de la phrase
