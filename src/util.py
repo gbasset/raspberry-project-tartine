@@ -1,0 +1,2 @@
+def generateNewAsnwer():
+    print('Answer')
