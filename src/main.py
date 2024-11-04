@@ -8,11 +8,11 @@ import datetime
 # Paramètres d'enregistrement
 RATE = 44100  # Taux d'échantillonnage
 CHANNELS = 1  # Mono
-PHRASE_TO_DETECT = "ok  tartine"
+PHRASE_TO_DETECT = "ok tartine"
 
 
 def start_recording():
-    """Enregistre l'audio et arette avec Espace."""
+    """Enregistre l'audio et arett e avec Espace."""
     print("Enregistrement en cours... Appuyez sur 'Espace' pour arrêter.")
 
     # Generate a unique filename based on the current timestamp
