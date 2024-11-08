@@ -1,4 +1,9 @@
 
+import sys
+import os
+
+# Ajouter src/recording au chemin de recherche de Python
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'recording')))
 from util_record import RATE, CHANNELS, PHRASE_TO_DETECT, STOP_PHRASE
 
 import sounddevice as sd
